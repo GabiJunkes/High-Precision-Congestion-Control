@@ -1,0 +1,11 @@
+*/*.waf*
+*/build
+*.pyc
+analysis/trace_reader
+/analysis/queue*.txt
+/analysis/queue*.png
+simulation/.lock-waf_linux2_build
+*.tr
+fct_*.txt
+pfc_*.txt
+qlen_*.txt
