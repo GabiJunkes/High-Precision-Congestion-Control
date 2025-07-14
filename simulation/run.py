@@ -14,7 +14,7 @@ TRACE_OUTPUT_FILE mix/mix_{topo}_{trace}_{cc}{failure}.tr
 FCT_OUTPUT_FILE mix/fct_{topo}_{trace}_{cc}{failure}.txt
 PFC_OUTPUT_FILE mix/pfc_{topo}_{trace}_{cc}{failure}.txt
 
-SIMULATOR_STOP_TIME 4.00
+SIMULATOR_STOP_TIME 60.00
 
 CC_MODE {mode}
 ALPHA_RESUME_INTERVAL {t_alpha}
@@ -74,6 +74,7 @@ if __name__ == "__main__":
 	parser.add_argument('--pint_log_base', dest='pint_log_base', action = 'store', type=float, default=1.01, help="PINT's log_base")
 	parser.add_argument('--pint_prob', dest='pint_prob', action = 'store', type=float, default=1.0, help="PINT's sampling probability")
 	parser.add_argument('--enable_tr', dest='enable_tr', action = 'store', type=int, default=0, help="enable packet-level events dump")
+	parser.add_argument('--use_playground', dest='use_playground', action = 'store', type=int, default=0, help="Change to playground file")
 	args = parser.parse_args()
 
 	topo=args.topo
@@ -93,9 +94,9 @@ if __name__ == "__main__":
 
 	config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, args.cc, failure)
 
-	kmax_map = "2 %d %d %d %d"%(bw*1000000000, 400*bw/25, bw*4*1000000000, 400*bw*4/25)
-	kmin_map = "2 %d %d %d %d"%(bw*1000000000, 100*bw/25, bw*4*1000000000, 100*bw*4/25)
-	pmax_map = "2 %d %.2f %d %.2f"%(bw*1000000000, 0.2, bw*4*1000000000, 0.2)
+	kmax_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 400*bw/25, bw*4*1000000000, 400*bw*4/25)
+	kmin_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 100*bw/25, bw*4*1000000000, 100*bw*4/25)
+	pmax_map = "3 1000000000 2 %d %.2f %d %.2f"%(bw*1000000000, 0.2, bw*4*1000000000, 0.2)
 	if (args.cc.startswith("dcqcn")):
 		ai = 5 * bw / 25
 		hai = 50 * bw /25
@@ -125,9 +126,9 @@ if __name__ == "__main__":
 		ai = 10 # ai is useless for dctcp
 		hai = ai  # also useless
 		dctcp_ai=615 # calculated from RTT=13us and MTU=1KB, because DCTCP add 1 MTU per RTT.
-		kmax_map = "2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
-		kmin_map = "2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
-		pmax_map = "2 %d %.2f %d %.2f"%(bw*1000000000, 1.0, bw*4*1000000000, 1.0)
+		kmax_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
+		kmin_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
+		pmax_map = "3 1000000000 2 %d %.2f %d %.2f"%(bw*1000000000, 1.0, bw*4*1000000000, 1.0)
 		config = config_template.format(bw=bw, trace=trace, topo=topo, cc=args.cc, mode=8, t_alpha=1, t_dec=4, t_inc=300, g=0.0625, ai=ai, hai=hai, dctcp_ai=dctcp_ai, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr)
 	elif args.cc == "timely":
 		ai = 10 * bw / 10;
@@ -158,5 +159,7 @@ if __name__ == "__main__":
 
 	with open(config_name, "w") as file:
 		file.write(config)
-	
-	os.system("./waf --run 'scratch/third %s'"%(config_name))
+
+	script = 'scratch/playground' if args.use_playground==1 else 'scratch/third'
+	cmd = "python2 waf --run \"%s %s\"" % (script, config_name)
+	os.system(cmd)
