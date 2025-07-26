@@ -56,6 +56,8 @@ void RdmaEchoServer::HandleQpComplete(Ptr<RdmaQueuePair> qp) {
   // TODO: melhorar isso
   RdmaClientHelper echoHelper(pg, dst, src, sport, dport, maxPackets, win, rtt);
   ApplicationContainer appCon = echoHelper.Install(m_node);
+
+  // Schedule consumir buffer (taxaDeConsumo, Tamanho)
   appCon.Start(Seconds(0));
 }
 

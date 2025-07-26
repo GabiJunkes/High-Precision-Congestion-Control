@@ -27,6 +27,8 @@ def build(bld):
         'helper/v4ping-helper.cc',
 		'model/rdma-client.cc',
 		'model/rdma-echo-server.cc',
+		'model/rdma-sim-client.cc',
+		'model/rdma-sim-server.cc',
 		'helper/rdma-client-helper.cc',
         ]
 
@@ -62,6 +64,8 @@ def build(bld):
         'helper/v4ping-helper.h',
 		'model/rdma-client.h',
 		'model/rdma-echo-server.h',
+		'model/rdma-sim-client.h',
+		'model/rdma-sim-server.h',
 		'helper/rdma-client-helper.h',
         ]
 
