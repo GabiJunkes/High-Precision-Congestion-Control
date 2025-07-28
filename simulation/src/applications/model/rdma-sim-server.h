@@ -31,7 +31,6 @@ private:
   uint64_t process_time;     // tempo de consumo (ns)
   uint32_t buffer_size;      // limite do buffer
   uint32_t buffer;           // quantidade de itens no buffer
-  uint64_t data_size;        // dados esperados, opcional
 
   bool processing;           // está processando ou não
 };

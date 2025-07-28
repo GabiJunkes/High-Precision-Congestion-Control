@@ -130,16 +130,12 @@ void RdmaSimClient::Process() {
 
 void RdmaSimClient::Consume() {
   NS_LOG_FUNCTION_NOARGS();
-  if (!is_sending && buffer > 0 && sent_data < total_data) {
+  if (!is_sending && buffer > 0) {
     is_sending = true;
 
-    uint64_t to_send = std::min(m_size, total_data - sent_data);
-
-    m_rdma->AddQueuePair(to_send, m_pg, m_sip, m_dip, m_sport, m_dport, m_win,
+    m_rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport, m_win,
                          m_baseRtt,
                          MakeCallback(&RdmaSimClient::Finish, this));
-
-    sent_data += to_send;
     buffer -= 1;
   }
 
@@ -147,6 +143,7 @@ void RdmaSimClient::Consume() {
                       MakeEvent(&RdmaSimClient::Consume, this));
 }
 
+// Chamado toda vez que termina de enviar
 void RdmaSimClient::Finish() {
   NS_LOG_FUNCTION_NOARGS();
   is_sending = false;

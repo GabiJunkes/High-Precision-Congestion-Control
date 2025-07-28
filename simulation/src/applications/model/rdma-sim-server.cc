@@ -21,11 +21,7 @@ TypeId RdmaSimServer::GetTypeId(void) {
           .AddAttribute("BufferSize", "Maximum buffer size",
                         UintegerValue(100),
                         MakeUintegerAccessor(&RdmaSimServer::buffer_size),
-                        MakeUintegerChecker<uint32_t>())
-          .AddAttribute("DataSize", "Expected total data (bytes)",
-                        UintegerValue(100000),
-                        MakeUintegerAccessor(&RdmaSimServer::data_size),
-                        MakeUintegerChecker<uint64_t>());
+                        MakeUintegerChecker<uint32_t>());
   return tid;
 }
 
@@ -60,6 +56,8 @@ void RdmaSimServer::Receive() {
       processing = true;
       Simulator::Schedule(NanoSeconds(process_time),
                           MakeEvent(&RdmaSimServer::Process, this));
+    } else {
+      // O que fazer?
     }
   } else {
     NS_LOG_WARN("Buffer overflow, data dropped");
@@ -70,11 +68,6 @@ void RdmaSimServer::Process() {
   NS_LOG_FUNCTION_NOARGS();
   if (buffer > 0) {
     buffer -= 1;
-  }
-
-  if (buffer > 0) {
-    Simulator::Schedule(NanoSeconds(process_time),
-                        MakeEvent(&RdmaSimServer::Process, this));
   } else {
     processing = false;
   }

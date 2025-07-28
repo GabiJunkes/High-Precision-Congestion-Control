@@ -41,14 +41,12 @@ private:
   uint16_t m_pg;
   uint32_t m_win;
   uint64_t m_baseRtt;
-  uint64_t m_size;         // tamanho de cada envio
-  uint64_t total_data;     // total a enviar
+  uint64_t m_size;         // tamanho de cada envio (o quanto cada process gera de dados)
 
   // Controle de buffer e estado
   uint32_t buffer;         // atual ocupação do buffer
   uint32_t buffer_size;    // tamanho máximo do buffer
   uint64_t process_time;   // tempo entre produções (ns)
-  uint64_t sent_data;      // total já enviado
 
   bool is_sending;         // se está aguardando envio ser finalizado
 };
