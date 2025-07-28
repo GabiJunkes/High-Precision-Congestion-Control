@@ -61,16 +61,12 @@ TypeId RdmaSimClient::GetTypeId(void) {
           .AddAttribute("BufferSize", "Max buffer size",
                         UintegerValue(10),
                         MakeUintegerAccessor(&RdmaSimClient::buffer_size),
-                        MakeUintegerChecker<uint32_t>())
-          .AddAttribute("DataSize", "Total data to send (bytes)",
-                        UintegerValue(100000),
-                        MakeUintegerAccessor(&RdmaSimClient::total_data),
-                        MakeUintegerChecker<uint64_t>());
+                        MakeUintegerChecker<uint32_t>());
   return tid;
 }
 
 RdmaSimClient::RdmaSimClient()
-    : buffer(0), is_sending(false), sent_data(0) {
+    : buffer(0), is_sending(false) {
   NS_LOG_FUNCTION_NOARGS();
 }
 
