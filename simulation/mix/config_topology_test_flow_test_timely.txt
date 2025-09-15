@@ -10,7 +10,7 @@ TRACE_OUTPUT_FILE mix/mix_topology_test_flow_test_timely.tr
 FCT_OUTPUT_FILE mix/fct_topology_test_flow_test_timely.txt
 PFC_OUTPUT_FILE mix/pfc_topology_test_flow_test_timely.txt
 
-SIMULATOR_STOP_TIME 60.00
+SIMULATOR_STOP_TIME 2.5202
 
 CC_MODE 7
 ALPHA_RESUME_INTERVAL 1

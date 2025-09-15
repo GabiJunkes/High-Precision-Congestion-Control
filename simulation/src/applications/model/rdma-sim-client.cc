@@ -16,6 +16,8 @@
 #include <ns3/rdma-driver.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <iomanip>
 
 namespace ns3 {
 
@@ -55,18 +57,14 @@ TypeId RdmaSimClient::GetTypeId(void) {
                         MakeUintegerAccessor(&RdmaSimClient::m_baseRtt),
                         MakeUintegerChecker<uint64_t>())
           .AddAttribute("ProcessTime", "Time to produce data (ns)",
-                        UintegerValue(100),
+                        UintegerValue(7812),
                         MakeUintegerAccessor(&RdmaSimClient::process_time),
-                        MakeUintegerChecker<uint64_t>())
-          .AddAttribute("BufferSize", "Max buffer size",
-                        UintegerValue(10),
-                        MakeUintegerAccessor(&RdmaSimClient::buffer_size),
-                        MakeUintegerChecker<uint32_t>());
+                        MakeUintegerChecker<uint64_t>());
   return tid;
 }
 
 RdmaSimClient::RdmaSimClient()
-    : buffer(0), is_sending(false) {
+    : buffer_in(0), buffer_out(0), is_sending(false), is_locked(false), locked_events(0), total_steps(0), start_time(0), count(0) {
   NS_LOG_FUNCTION_NOARGS();
 }
 
@@ -97,11 +95,15 @@ void RdmaSimClient::SetNode(Ptr<Node> node) {
   m_rdma = m_node->GetObject<RdmaDriver>();
 }
 
+void RdmaSimClient::SetFile(std::ofstream &file) {
+  m_file = &file;
+}
+
 void RdmaSimClient::StartApplication(void) {
+  // printf("Started client\n");
   NS_LOG_FUNCTION_NOARGS();
 
-  // Inicializa produção e consumo
-  Simulator::Schedule(NanoSeconds(process_time),
+  Simulator::Schedule(NanoSeconds(0),
                       MakeEvent(&RdmaSimClient::Process, this));
   Simulator::Schedule(NanoSeconds(0),
                       MakeEvent(&RdmaSimClient::Consume, this));
@@ -109,40 +111,79 @@ void RdmaSimClient::StartApplication(void) {
 
 void RdmaSimClient::StopApplication() {
   NS_LOG_FUNCTION_NOARGS();
-  // Aqui poderia ser adicionado cancelamento de eventos, se desejado
 }
 
 void RdmaSimClient::Process() {
-  NS_LOG_FUNCTION_NOARGS();
-  if (buffer < buffer_size) {
-    buffer += 1;
-  } else {
-    // buffer cheio, não produz
+  if (is_locked == false) {
+    // Se buffers são iguais conta locked_events (buffer_in != 0 é necessario para não ficar preso sem produzir nada)
+    if (buffer_in == buffer_out && buffer_in != 0) {
+      locked_events += 1;
+      Simulator::Schedule(NanoSeconds(process_time),
+                      MakeEvent(&RdmaSimClient::Process, this));
+      is_locked = true;
+      return;
+    }
+
+    buffer_out += 1;
+
+    if (total_steps == STEPS_PER_DATA_SIZE) {
+      double starvation = (double)locked_events / (double)total_steps;
+      (*m_file) << "P; "
+                << (double)process_time << "; "
+                << m_size << "; "
+                << locked_events << "; "
+                << starvation
+                << std::endl;
+
+      locked_events = 0;
+      m_size *= 10; // a cada loop de STEPS_PER_DATA_SIZE, multiplica m_size
+      count++;
+      total_steps = 0;
+    }
+
   }
 
-  Simulator::Schedule(NanoSeconds(process_time),
-                      MakeEvent(&RdmaSimClient::Process, this));
+  // Usa count para determinar quantos loops de STEPS_PER_DATA_SIZE ja foram
+  if (count < 5) {
+    Simulator::Schedule(NanoSeconds(process_time), MakeEvent(&RdmaSimClient::Process, this));
+  }
 }
 
 void RdmaSimClient::Consume() {
-  NS_LOG_FUNCTION_NOARGS();
-  if (!is_sending && buffer > 0) {
+  if (!is_sending && buffer_out > buffer_in) {
     is_sending = true;
+    // guarda o momento que enviou
+    start_time = Simulator::Now().GetMicroSeconds();
 
+    // envia pacote, quando terminar chama RdmaSimClient::Finish()
     m_rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport, m_win,
                          m_baseRtt,
                          MakeCallback(&RdmaSimClient::Finish, this));
-    buffer -= 1;
   }
 
-  Simulator::Schedule(NanoSeconds(0),
+  // Tenta consumir de novo depois de process_time ns
+  Simulator::Schedule(NanoSeconds(process_time),
                       MakeEvent(&RdmaSimClient::Consume, this));
 }
 
-// Chamado toda vez que termina de enviar
 void RdmaSimClient::Finish() {
-  NS_LOG_FUNCTION_NOARGS();
+  uint64_t now = Simulator::Now().GetMicroSeconds();
+  long fct = now - start_time;
+  if (fct == 0) fct = 1;
+  double throughput = (double)m_size / fct;
+
+  (*m_file) << "C; "
+            << (double)process_time << "; "
+            << m_size << "; "
+            << fct << "; "
+            << throughput
+            << std::endl;
+
   is_sending = false;
+  buffer_in += 1;
+  // reseta lock (talvez tenha q ser resetado em outro lugar)
+  is_locked = false;
+  total_steps++;
 }
 
 void RdmaSimClient::DoDispose(void) {

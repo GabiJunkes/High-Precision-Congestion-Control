@@ -5,6 +5,7 @@
 #include "ns3/ipv4-address.h"
 #include "ns3/rdma-driver.h"
 #include "ns3/event-id.h"
+#include <fstream>
 
 namespace ns3 {
 
@@ -19,6 +20,7 @@ public:
   void SetPG(uint16_t pg);
   void SetSize(uint64_t size);
   void SetNode(Ptr<Node> node);
+  void SetFile(std::ofstream &m_file);
 
 protected:
   virtual void StartApplication(void);
@@ -44,11 +46,22 @@ private:
   uint64_t m_size;         // tamanho de cada envio (o quanto cada process gera de dados)
 
   // Controle de buffer e estado
-  uint32_t buffer;         // atual ocupação do buffer
-  uint32_t buffer_size;    // tamanho máximo do buffer
+  uint32_t buffer_in;         // atual ocupação do buffer
+  uint32_t buffer_out;         // atual ocupação do buffer
+  
   uint64_t process_time;   // tempo entre produções (ns)
 
+  uint32_t locked_events;
+  uint32_t total_steps;
+  uint32_t start_time;
+  std::ofstream* m_file;
+
+  uint32_t count;
+
   bool is_sending;         // se está aguardando envio ser finalizado
+  bool is_locked;          // simula pc_mutex
+
+  static const uint32_t STEPS_PER_DATA_SIZE = 100;
 };
 
 } // namespace ns3

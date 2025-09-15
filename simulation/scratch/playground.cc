@@ -37,6 +37,9 @@
 #include <ns3/switch-node.h>
 #include <ns3/sim-setting.h>
 #include <ns3/rdma-echo-server.h>
+#include <ns3/rdma-sim-client.h>
+#include <ns3/rdma-sim-server.h>
+#include <ns3/rdma-sim-traffic.h>
 
 using namespace ns3;
 using namespace std;
@@ -850,12 +853,18 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#if ENABLE_QP
 	FILE *fct_output = fopen(fct_output_file.c_str(), "w");
 	//
 	// install RDMA driver
 	//
+	Ptr<RdmaDriver> clientRdma;
+
+
+  	std::ofstream clientLogFile("saida_client.csv");
+  	std::ofstream serverLogFile("saida_server.csv");
+
 	for (uint32_t i = 0; i < node_num; i++){
+		std::cout << "i "<< i << ", id: "<< n.Get(i) << ", type: "<< n.Get(i)->GetNodeType() <<"\n";
 		if (n.Get(i)->GetNodeType() == 0){ // is server
 			// create RdmaHw
 			Ptr<RdmaHw> rdmaHw = CreateObject<RdmaHw>();
@@ -892,14 +901,65 @@ int main(int argc, char *argv[])
 			rdma->Init();
 			rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback (qp_finish, fct_output));
 
-			Ptr<RdmaEchoServer> echo = CreateObject<RdmaEchoServer>();
-			echo->SetRdma(rdma);
-			echo->SetNode(node);
-			node->AddApplication(echo);
-			echo->SetStartTime(Seconds(0));
+			// Ptr<RdmaEchoServer> echo = CreateObject<RdmaEchoServer>();
+			// echo->SetRdma(rdma);
+			// echo->SetNode(node);
+			// node->AddApplication(echo);
+			// echo->SetStartTime(Seconds(0));
+
+			if (i == 2){
+				Ptr<RdmaSimClient> rdmaSimClient = CreateObject<RdmaSimClient>();
+
+				rdmaSimClient->SetAttribute("WriteSize", UintegerValue(1024));
+				rdmaSimClient->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
+				rdmaSimClient->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
+				rdmaSimClient->SetAttribute("SourcePort", UintegerValue(5555));
+				rdmaSimClient->SetAttribute("DestPort", UintegerValue(5556));
+				rdmaSimClient->SetAttribute("PriorityGroup", UintegerValue(3));
+				rdmaSimClient->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(2)][n.Get(3)]):0));
+				rdmaSimClient->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[2][3]));
+
+				rdmaSimClient->SetNode(node);
+				rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(7812));
+				
+				node->AddApplication(rdmaSimClient);
+				rdmaSimClient->SetStartTime(Seconds(1));
+
+				rdmaSimClient->SetFile(clientLogFile);
+
+				clientRdma = rdma;
+			}else if (i == 3) {
+				Ptr<RdmaSimServer> rdmaSimServer = CreateObject<RdmaSimServer>();
+
+				rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(7812));
+
+				rdmaSimServer->SetNode(node);
+				rdmaSimServer->SetRdma(clientRdma);
+				
+
+				node->AddApplication(rdmaSimServer);
+				rdmaSimServer->SetStartTime(Seconds(1));
+
+				rdmaSimServer->SetFile(serverLogFile);
+			} else if (i == 4) {
+				Ptr<RdmaSimTraffic> rdmaSimTraffic = CreateObject<RdmaSimTraffic>();
+
+				rdmaSimTraffic->SetAttribute("WriteSize", UintegerValue(1073741824));
+				rdmaSimTraffic->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
+				rdmaSimTraffic->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
+				rdmaSimTraffic->SetAttribute("SourcePort", UintegerValue(5555));
+				rdmaSimTraffic->SetAttribute("DestPort", UintegerValue(5556));
+				rdmaSimTraffic->SetAttribute("PriorityGroup", UintegerValue(3));
+				rdmaSimTraffic->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(4)][n.Get(3)]):0));
+				rdmaSimTraffic->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[4][3]));
+
+				rdmaSimTraffic->SetNode(node);
+				
+				node->AddApplication(rdmaSimTraffic);
+				rdmaSimTraffic->SetStartTime(Seconds(0));
+			}
 		}
 	}
-	#endif
 
 	// set ACK priority on hosts
 	if (ack_high_prio)
@@ -1008,8 +1068,9 @@ int main(int argc, char *argv[])
 
 	flow_input.idx = 0;
 	if (flow_num > 0){
-		ReadFlowInput();
-		Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
+		
+		// ReadFlowInput();
+		// Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
 	}
 
 	topof.close();

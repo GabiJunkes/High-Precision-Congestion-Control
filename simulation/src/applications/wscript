@@ -29,6 +29,7 @@ def build(bld):
 		'model/rdma-echo-server.cc',
 		'model/rdma-sim-client.cc',
 		'model/rdma-sim-server.cc',
+		'model/rdma-sim-traffic.cc',
 		'helper/rdma-client-helper.cc',
         ]
 
@@ -66,6 +67,7 @@ def build(bld):
 		'model/rdma-echo-server.h',
 		'model/rdma-sim-client.h',
 		'model/rdma-sim-server.h',
+		'model/rdma-sim-traffic.h',
 		'helper/rdma-client-helper.h',
         ]
 

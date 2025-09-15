@@ -4,6 +4,8 @@
 #include "ns3/application.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/rdma-driver.h"
+#include <fstream>
+#include <vector>
 
 namespace ns3 {
 
@@ -13,8 +15,10 @@ public:
   RdmaSimServer();
   virtual ~RdmaSimServer();
 
+  void SetRdma(Ptr<RdmaDriver> rdma);
   void SetNode(Ptr<Node> node);
-  void Receive(); // chamada pela RDMA ao receber dados
+  void Receive(Ptr<RdmaQueuePair> qp); // chamada pela RDMA ao receber dados
+  void SetFile(std::ofstream &m_file);
 
 protected:
   virtual void StartApplication(void);
@@ -23,16 +27,29 @@ protected:
 
 private:
   void Process();
+  void Consume();
 
   // Atributos de simulação
   Ptr<Node> m_node;
   Ptr<RdmaDriver> m_rdma;
 
   uint64_t process_time;     // tempo de consumo (ns)
-  uint32_t buffer_size;      // limite do buffer
-  uint32_t buffer;           // quantidade de itens no buffer
+  uint32_t buffer_in;      // limite do buffer
+  uint32_t buffer_out;           // quantidade de itens no buffer
 
-  bool processing;           // está processando ou não
+  uint32_t locked_events;
+  uint32_t total_steps;
+
+  std::ofstream* m_file;
+
+  uint32_t count;
+
+  bool is_processing;           // está processando ou não
+  bool is_locked;               // simmula pc->mutex
+  
+  std::vector<uint32_t> m_sizes_per_step;
+
+  static const uint32_t STEPS_PER_DATA_SIZE = 100;
 };
 
 } // namespace ns3
