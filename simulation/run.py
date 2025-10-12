@@ -14,7 +14,7 @@ TRACE_OUTPUT_FILE mix/mix_{topo}_{trace}_{cc}{failure}.tr
 FCT_OUTPUT_FILE mix/fct_{topo}_{trace}_{cc}{failure}.txt
 PFC_OUTPUT_FILE mix/pfc_{topo}_{trace}_{cc}{failure}.txt
 
-SIMULATOR_STOP_TIME 2.5202
+SIMULATOR_STOP_TIME 60.0
 
 CC_MODE {mode}
 ALPHA_RESUME_INTERVAL {t_alpha}

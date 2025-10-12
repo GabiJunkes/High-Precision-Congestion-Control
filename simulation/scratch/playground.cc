@@ -86,6 +86,8 @@ uint32_t qlen_dump_interval = 100000000, qlen_mon_interval = 100;
 uint64_t qlen_mon_start = 2000000000, qlen_mon_end = 2100000000;
 string qlen_mon_file;
 
+uint32_t cpu_time = 7812;
+
 unordered_map<uint64_t, uint32_t> rate2kmax, rate2kmin;
 unordered_map<uint64_t, double> rate2pmax;
 
@@ -654,6 +656,9 @@ int main(int argc, char *argv[])
 			}else if (key.compare("PINT_PROB") == 0){
 				conf >> pint_prob;
 				std::cout << "PINT_PROB\t\t\t\t" << pint_prob << '\n';
+			}else if (key.compare("CPU_TIME") == 0){
+				conf >> cpu_time;
+				std::cout << "CPU_TIME\t\t\t\t" << cpu_time << '\n';
 			}
 			fflush(stdout);
 		}
@@ -857,11 +862,21 @@ int main(int argc, char *argv[])
 	//
 	// install RDMA driver
 	//
+	// uint32_t PARAMS_CPU_DURATION_MICROSECONDS[] = {7812, 15625, 31250, 62500, 125000, 25000, 500000};
+	// uint32_t PARAMS_CPU_DURATION_MICROSECONDS_SIZE = sizeof(PARAMS_CPU_DURATION_MICROSECONDS) / sizeof(uint32_t);
+
 	Ptr<RdmaDriver> clientRdma;
 
+	std::string algorithm = "timely";
 
-  	std::ofstream clientLogFile("saida_client.csv");
-  	std::ofstream serverLogFile("saida_server.csv");
+	if (cc_mode == 1){
+		algorithm = "dcqcn";
+	}else if (cc_mode == 8){
+		algorithm = "dctcp";
+	}
+
+  	std::ofstream clientLogFile("log_output/saida_client_" + algorithm + "_" + std::to_string(cpu_time) + ".csv");
+  	std::ofstream serverLogFile("log_output/saida_server_" + algorithm + "_" + std::to_string(cpu_time) + ".csv");
 
 	for (uint32_t i = 0; i < node_num; i++){
 		std::cout << "i "<< i << ", id: "<< n.Get(i) << ", type: "<< n.Get(i)->GetNodeType() <<"\n";
@@ -908,39 +923,35 @@ int main(int argc, char *argv[])
 			// echo->SetStartTime(Seconds(0));
 
 			if (i == 2){
-				Ptr<RdmaSimClient> rdmaSimClient = CreateObject<RdmaSimClient>();
+					clientRdma = rdma;
+					Ptr<RdmaSimClient> rdmaSimClient = CreateObject<RdmaSimClient>();
+					rdmaSimClient->SetAttribute("WriteSize", UintegerValue(1024));
+					rdmaSimClient->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
+					rdmaSimClient->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
+					rdmaSimClient->SetAttribute("SourcePort", UintegerValue(5555));
+					rdmaSimClient->SetAttribute("DestPort", UintegerValue(5556));
+					rdmaSimClient->SetAttribute("PriorityGroup", UintegerValue(3));
+					rdmaSimClient->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(2)][n.Get(3)]):0));
+					rdmaSimClient->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[2][3]));
 
-				rdmaSimClient->SetAttribute("WriteSize", UintegerValue(1024));
-				rdmaSimClient->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
-				rdmaSimClient->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
-				rdmaSimClient->SetAttribute("SourcePort", UintegerValue(5555));
-				rdmaSimClient->SetAttribute("DestPort", UintegerValue(5556));
-				rdmaSimClient->SetAttribute("PriorityGroup", UintegerValue(3));
-				rdmaSimClient->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(2)][n.Get(3)]):0));
-				rdmaSimClient->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[2][3]));
+					rdmaSimClient->SetNode(node);
+					rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(cpu_time));
+					
+					node->AddApplication(rdmaSimClient);
+					rdmaSimClient->SetStartTime(Seconds(1));
 
-				rdmaSimClient->SetNode(node);
-				rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(7812));
-				
-				node->AddApplication(rdmaSimClient);
-				rdmaSimClient->SetStartTime(Seconds(1));
-
-				rdmaSimClient->SetFile(clientLogFile);
-
-				clientRdma = rdma;
+					rdmaSimClient->SetFile(clientLogFile);
 			}else if (i == 3) {
-				Ptr<RdmaSimServer> rdmaSimServer = CreateObject<RdmaSimServer>();
+					Ptr<RdmaSimServer> rdmaSimServer = CreateObject<RdmaSimServer>();
 
-				rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(7812));
+					rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(cpu_time));\
+					rdmaSimServer->SetNode(node);
+					rdmaSimServer->SetRdma(clientRdma);					
 
-				rdmaSimServer->SetNode(node);
-				rdmaSimServer->SetRdma(clientRdma);
-				
+					node->AddApplication(rdmaSimServer);
+					rdmaSimServer->SetStartTime(Seconds(1));
 
-				node->AddApplication(rdmaSimServer);
-				rdmaSimServer->SetStartTime(Seconds(1));
-
-				rdmaSimServer->SetFile(serverLogFile);
+					rdmaSimServer->SetFile(serverLogFile);
 			} else if (i == 4) {
 				Ptr<RdmaSimTraffic> rdmaSimTraffic = CreateObject<RdmaSimTraffic>();
 

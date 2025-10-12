@@ -32,7 +32,6 @@ private:
   // Atributos de simulação
   Ptr<Node> m_node;
   Ptr<RdmaDriver> m_rdma;
-
   uint64_t process_time;     // tempo de consumo (ns)
   uint32_t buffer_in;      // limite do buffer
   uint32_t buffer_out;           // quantidade de itens no buffer

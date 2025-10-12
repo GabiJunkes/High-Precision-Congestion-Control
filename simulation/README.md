@@ -74,4 +74,6 @@ The TIMELY implementation is based on our own understanding of the TIMELY paper.
 
 The DCTCP implementation is a version that we envision DCTCP will be implemented in hardware. It starts at line rate (not slow start) which we believe is necessary in future high-speed network. It also does not delay ACK, because delayed ACk is for saving software overhead. These settings are consistent with other schemes.
 
-`python2 run.py --cc timely --trace flow_test --bw 10 --topo topology_test --use_playground=1 --enable_tr=1`
+`
+python2 run_all_cpus.py --trace flow_test --bw 10 --topo topology_test --use_playground=1;
+`

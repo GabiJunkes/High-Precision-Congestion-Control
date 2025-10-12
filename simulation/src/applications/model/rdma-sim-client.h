@@ -31,6 +31,7 @@ private:
   void Process();
   void Consume();
   void Finish();
+  void Unpause();
 
   // Atributos RDMA e IP/Portas
   Ptr<Node> m_node;
@@ -57,6 +58,8 @@ private:
   std::ofstream* m_file;
 
   uint32_t count;
+
+  bool is_paused;            // usado depois de terminar um passo (step) dando tempo do server receber todos os pacotes
 
   bool is_sending;         // se está aguardando envio ser finalizado
   bool is_locked;          // simula pc_mutex

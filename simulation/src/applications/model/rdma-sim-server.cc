@@ -3,8 +3,6 @@
 #include "ns3/nstime.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
-#include <iostream>
-#include <iomanip>
 
 namespace ns3 {
 
@@ -75,6 +73,8 @@ void RdmaSimServer::Receive(Ptr<RdmaQueuePair> qp) {
       m_sizes_per_step[count] = qp->m_size;
     }else if (m_sizes_per_step[count] != qp->m_size) { // Se diferente é porque recebeu o proximo ciclo de STEPS_PER_DATA_SIZE
       m_sizes_per_step[count + 1] = qp->m_size;
+      (*m_file) << "CAIU"
+                << std::endl;
     }
 }
 
@@ -105,6 +105,8 @@ void RdmaSimServer::Process() {
       locked_events = 0;
       count++;
       total_steps = 0;
+      buffer_out = 0;
+      buffer_in = 0;
     }
 
   }
