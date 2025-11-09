@@ -87,6 +87,7 @@ uint64_t qlen_mon_start = 2000000000, qlen_mon_end = 2100000000;
 string qlen_mon_file;
 
 uint32_t cpu_time = 7812;
+uint32_t packet_size = 1024;
 
 unordered_map<uint64_t, uint32_t> rate2kmax, rate2kmin;
 unordered_map<uint64_t, double> rate2pmax;
@@ -659,6 +660,9 @@ int main(int argc, char *argv[])
 			}else if (key.compare("CPU_TIME") == 0){
 				conf >> cpu_time;
 				std::cout << "CPU_TIME\t\t\t\t" << cpu_time << '\n';
+			}else if (key.compare("PACKET_SIZE") == 0){
+				conf >> packet_size;
+				std::cout << "PACKET_SIZE\t\t\t\t" << packet_size << '\n';
 			}
 			fflush(stdout);
 		}
@@ -873,10 +877,12 @@ int main(int argc, char *argv[])
 		algorithm = "dcqcn";
 	}else if (cc_mode == 8){
 		algorithm = "dctcp";
+	} else if (cc_mode == 10) {
+		algorithm = "hp";
 	}
 
-  	std::ofstream clientLogFile("log_output/saida_client_" + algorithm + "_" + std::to_string(cpu_time) + ".csv");
-  	std::ofstream serverLogFile("log_output/saida_server_" + algorithm + "_" + std::to_string(cpu_time) + ".csv");
+  	std::ofstream clientLogFile("log_output/saida_client_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv");
+  	std::ofstream serverLogFile("log_output/saida_server_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv");
 
 	for (uint32_t i = 0; i < node_num; i++){
 		std::cout << "i "<< i << ", id: "<< n.Get(i) << ", type: "<< n.Get(i)->GetNodeType() <<"\n";
@@ -925,7 +931,7 @@ int main(int argc, char *argv[])
 			if (i == 2){
 					clientRdma = rdma;
 					Ptr<RdmaSimClient> rdmaSimClient = CreateObject<RdmaSimClient>();
-					rdmaSimClient->SetAttribute("WriteSize", UintegerValue(1024));
+					rdmaSimClient->SetAttribute("WriteSize", UintegerValue(packet_size));
 					rdmaSimClient->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
 					rdmaSimClient->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
 					rdmaSimClient->SetAttribute("SourcePort", UintegerValue(5555));
@@ -938,10 +944,10 @@ int main(int argc, char *argv[])
 					rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(cpu_time));
 					
 					node->AddApplication(rdmaSimClient);
-					rdmaSimClient->SetStartTime(Seconds(1));
+					rdmaSimClient->SetStartTime(MicroSeconds(2100000));
 
 					rdmaSimClient->SetFile(clientLogFile);
-			}else if (i == 3) {
+			}else if (i == 17) { // 17 intra pod 64 inter pod
 					Ptr<RdmaSimServer> rdmaSimServer = CreateObject<RdmaSimServer>();
 
 					rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(cpu_time));\
@@ -949,26 +955,27 @@ int main(int argc, char *argv[])
 					rdmaSimServer->SetRdma(clientRdma);					
 
 					node->AddApplication(rdmaSimServer);
-					rdmaSimServer->SetStartTime(Seconds(1));
+					rdmaSimServer->SetStartTime(MicroSeconds(2100000));
 
 					rdmaSimServer->SetFile(serverLogFile);
-			} else if (i == 4) {
-				Ptr<RdmaSimTraffic> rdmaSimTraffic = CreateObject<RdmaSimTraffic>();
+			} 
+			// else if (i == 1) {
+			// 	Ptr<RdmaSimTraffic> rdmaSimTraffic = CreateObject<RdmaSimTraffic>();
 
-				rdmaSimTraffic->SetAttribute("WriteSize", UintegerValue(1073741824));
-				rdmaSimTraffic->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[2]));
-				rdmaSimTraffic->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
-				rdmaSimTraffic->SetAttribute("SourcePort", UintegerValue(5555));
-				rdmaSimTraffic->SetAttribute("DestPort", UintegerValue(5556));
-				rdmaSimTraffic->SetAttribute("PriorityGroup", UintegerValue(3));
-				rdmaSimTraffic->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(4)][n.Get(3)]):0));
-				rdmaSimTraffic->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[4][3]));
+			// 	rdmaSimTraffic->SetAttribute("WriteSize", UintegerValue(100073741824));
+			// 	rdmaSimTraffic->SetAttribute("SourceIP", Ipv4AddressValue(serverAddress[1]));
+			// 	rdmaSimTraffic->SetAttribute("DestIP", Ipv4AddressValue(serverAddress[3]));
+			// 	rdmaSimTraffic->SetAttribute("SourcePort", UintegerValue(5555));
+			// 	rdmaSimTraffic->SetAttribute("DestPort", UintegerValue(5557));
+			// 	rdmaSimTraffic->SetAttribute("PriorityGroup", UintegerValue(3));
+			// 	rdmaSimTraffic->SetAttribute("Window", UintegerValue(has_win?(global_t==1?maxBdp:pairBdp[n.Get(1)][n.Get(3)]):0));
+			// 	rdmaSimTraffic->SetAttribute("BaseRtt", UintegerValue(global_t==1?maxRtt:pairRtt[1][3]));
 
-				rdmaSimTraffic->SetNode(node);
+			// 	rdmaSimTraffic->SetNode(node);
 				
-				node->AddApplication(rdmaSimTraffic);
-				rdmaSimTraffic->SetStartTime(Seconds(0));
-			}
+			// 	node->AddApplication(rdmaSimTraffic);
+			// 	rdmaSimTraffic->SetStartTime(Seconds(0));
+			// }
 		}
 	}
 
@@ -1080,8 +1087,8 @@ int main(int argc, char *argv[])
 	flow_input.idx = 0;
 	if (flow_num > 0){
 		
-		// ReadFlowInput();
-		// Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
+		ReadFlowInput();
+		Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
 	}
 
 	topof.close();

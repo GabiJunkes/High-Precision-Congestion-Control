@@ -35,18 +35,15 @@ private:
   uint64_t process_time;     // tempo de consumo (ns)
   uint32_t buffer_in;      // limite do buffer
   uint32_t buffer_out;           // quantidade de itens no buffer
+  uint64_t m_size;
 
   uint32_t locked_events;
   uint32_t total_steps;
 
   std::ofstream* m_file;
 
-  uint32_t count;
-
   bool is_processing;           // está processando ou não
   bool is_locked;               // simmula pc->mutex
-  
-  std::vector<uint32_t> m_sizes_per_step;
 
   static const uint32_t STEPS_PER_DATA_SIZE = 100;
 };

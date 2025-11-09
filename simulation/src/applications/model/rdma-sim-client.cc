@@ -64,7 +64,7 @@ TypeId RdmaSimClient::GetTypeId(void) {
 }
 
 RdmaSimClient::RdmaSimClient()
-    : buffer_in(0), buffer_out(0), is_sending(false), is_locked(false), locked_events(0), total_steps(0), start_time(0), count(0), is_paused(false) {
+    : buffer_in(0), buffer_out(0), is_sending(false), is_locked(false), locked_events(0), total_steps(0), start_time(0), sent_count(0), is_finished(false) {
   NS_LOG_FUNCTION_NOARGS();
 }
 
@@ -114,74 +114,53 @@ void RdmaSimClient::StopApplication() {
 }
 
 void RdmaSimClient::Process() {
-  if (!is_paused) {
-    if (is_locked == false) {
-      // Se buffers são iguais conta locked_events (buffer_in != 0 é necessario para não ficar preso sem produzir nada)
-      if (buffer_in == buffer_out) {
-        locked_events += 1;
-        Simulator::Schedule(NanoSeconds(process_time),
-                        MakeEvent(&RdmaSimClient::Process, this));
-        is_locked = true;
-        return;
-      }
-
-      buffer_out += 1;
-
-      if (total_steps == STEPS_PER_DATA_SIZE) {
-        double starvation = (double)locked_events / (double)total_steps;
-        (*m_file) << "P; "
-                  << (double)process_time << "; "
-                  << m_size << "; "
-                  << locked_events << "; "
-                  << starvation
-                  << std::endl;
-
-
-        locked_events = 0;
-        m_size *= 10; // a cada loop de STEPS_PER_DATA_SIZE, multiplica m_size
-        count++;
-        total_steps = 0;
-        buffer_in = 0;
-        buffer_out = 0;
-
-        // After completing a data size pause for some time so server can receive all packets at m_size
-        is_paused = true;
-        if (count < 5) {
-          Simulator::Schedule(NanoSeconds(process_time * 100), MakeEvent(&RdmaSimClient::Unpause, this));
-        }
-      }
-
+  if (is_locked == false && !is_finished) {
+    // Se buffers são iguais conta locked_events (buffer_in != 0 é necessario para não ficar preso sem produzir nada)
+    if (buffer_in == buffer_out) {
+      locked_events += 1;
+      Simulator::Schedule(NanoSeconds(process_time),
+                      MakeEvent(&RdmaSimClient::Process, this));
+      is_locked = true;
+      return;
     }
 
-    // Usa count para determinar quantos loops de STEPS_PER_DATA_SIZE ja foram
-    if (count < 5) {
-      Simulator::Schedule(NanoSeconds(process_time), MakeEvent(&RdmaSimClient::Process, this));
+    buffer_out += 1;
+
+    if (total_steps == STEPS_PER_DATA_SIZE) {
+      double starvation = (double)locked_events / (double)total_steps;
+      (*m_file) << "P; "
+                << (double)process_time << "; "
+                << m_size << "; "
+                << locked_events << "; "
+                << starvation
+                << std::endl;
+
+      is_finished = true;
     }
   }
-}
 
-void RdmaSimClient::Unpause() {
-  is_paused = false;
+  if (!is_finished) {
+    Simulator::Schedule(NanoSeconds(process_time), MakeEvent(&RdmaSimClient::Process, this));
+  }
 }
 
 void RdmaSimClient::Consume() {
-  if (count < 5) {        // Não rode se passar de 5 iterações
-    if (!is_paused) {     // Não rode se estiver pausado mas chame schedule
-      if (!is_sending) {  // Não rode se estiver renviando mas chame schedule
-        is_sending = true;
-        // guarda o momento que enviou
-        start_time = Simulator::Now().GetMicroSeconds();
+  if (is_finished) { return; }
 
-        // envia pacote, quando terminar chama RdmaSimClient::Finish()
-        m_rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport, m_win,
-                            m_baseRtt,
-                            MakeCallback(&RdmaSimClient::Finish, this));
-      }
-    }
+  if (!is_sending && sent_count<STEPS_PER_DATA_SIZE) {
+    is_sending = true;
+    // guarda o momento que enviou
+    start_time = Simulator::Now().GetMicroSeconds();
 
-    Simulator::Schedule(NanoSeconds(100),
-                        MakeEvent(&RdmaSimClient::Consume, this));
+    // envia pacote, quando terminar chama RdmaSimClient::Finish()
+    m_rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport+sent_count, m_win,
+                        m_baseRtt,
+                        MakeCallback(&RdmaSimClient::Finish, this));
+    sent_count++;
   }
+
+  Simulator::Schedule(NanoSeconds(100),
+                      MakeEvent(&RdmaSimClient::Consume, this));
 }
 
 void RdmaSimClient::Finish() {

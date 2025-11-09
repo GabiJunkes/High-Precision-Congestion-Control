@@ -91,8 +91,11 @@ void RdmaSimTraffic::SetNode(Ptr<Node> node) {
 void RdmaSimTraffic::StartApplication(void) {
   printf("Started traffic\n");
   NS_LOG_FUNCTION_NOARGS();
-  Simulator::Schedule(NanoSeconds(0),
-                          MakeEvent(&RdmaSimTraffic::Finish, this));
+  for (uint16_t i = 0; i < 50; i++){
+    m_rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport + i, m_win,
+      m_baseRtt,
+      MakeCallback(&RdmaSimTraffic::Finish, this));
+  }
 
 }
 

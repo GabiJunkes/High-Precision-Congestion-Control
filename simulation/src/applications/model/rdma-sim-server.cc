@@ -21,9 +21,8 @@ TypeId RdmaSimServer::GetTypeId(void) {
   return tid;
 }
 
-RdmaSimServer::RdmaSimServer() : buffer_in(0), buffer_out(0), is_locked(false), is_processing(false), locked_events(0), total_steps(0), count(0) {
+RdmaSimServer::RdmaSimServer() : buffer_in(0), buffer_out(0), is_locked(false), is_processing(false), locked_events(0), total_steps(0) {
   NS_LOG_FUNCTION_NOARGS();
-  m_sizes_per_step.resize(5, 0);
 }
 
 RdmaSimServer::~RdmaSimServer() { NS_LOG_FUNCTION_NOARGS(); }
@@ -59,6 +58,8 @@ void RdmaSimServer::Receive(Ptr<RdmaQueuePair> qp) {
 
     double throughput = (double)qp->m_size / fct;
 
+    m_size = qp->m_size;
+
     (*m_file) << "C; "
               << (double)process_time << "; "
               << qp->m_size << "; "
@@ -68,14 +69,6 @@ void RdmaSimServer::Receive(Ptr<RdmaQueuePair> qp) {
 
     buffer_in += 1;
     is_locked = false;
-
-    if (m_sizes_per_step[count] == 0) { // Se 0, então add o size
-      m_sizes_per_step[count] = qp->m_size;
-    }else if (m_sizes_per_step[count] != qp->m_size) { // Se diferente é porque recebeu o proximo ciclo de STEPS_PER_DATA_SIZE
-      m_sizes_per_step[count + 1] = qp->m_size;
-      (*m_file) << "CAIU"
-                << std::endl;
-    }
 }
 
 void RdmaSimServer::Process() {
@@ -97,16 +90,10 @@ void RdmaSimServer::Process() {
       double starvation = (double)locked_events / (double)STEPS_PER_DATA_SIZE;
       (*m_file) << "P; "
                 << (double)process_time << "; "
-                << m_sizes_per_step[count] << "; " // pega size do count atual (evita receber pacotes do proximo ciclo e usar m_size sem ter terminado process)
+                << m_size << "; "
                 << locked_events << "; "
                 << starvation
                 << std::endl;
-
-      locked_events = 0;
-      count++;
-      total_steps = 0;
-      buffer_out = 0;
-      buffer_in = 0;
     }
 
   }

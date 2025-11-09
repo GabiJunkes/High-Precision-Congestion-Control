@@ -14,7 +14,7 @@ TRACE_OUTPUT_FILE mix/mix_{topo}_{trace}_{cc}{failure}.tr
 FCT_OUTPUT_FILE mix/fct_{topo}_{trace}_{cc}{failure}.txt
 PFC_OUTPUT_FILE mix/pfc_{topo}_{trace}_{cc}{failure}.txt
 
-SIMULATOR_STOP_TIME 40.0
+SIMULATOR_STOP_TIME {seconds}
 
 CC_MODE {mode}
 ALPHA_RESUME_INTERVAL {t_alpha}
@@ -62,6 +62,7 @@ QLEN_MON_START 2000000000
 QLEN_MON_END 3000000000
 
 CPU_TIME {cpu_time};
+PACKET_SIZE {packet_size};
 
 """
 if __name__ == "__main__":
@@ -95,79 +96,95 @@ if __name__ == "__main__":
 		failure = '_down'
 
 
-	kmax_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 400*bw/25, bw*4*1000000000, 400*bw*4/25)
-	kmin_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 100*bw/25, bw*4*1000000000, 100*bw*4/25)
-	pmax_map = "3 1000000000 2 %d %.2f %d %.2f"%(bw*1000000000, 0.2, bw*4*1000000000, 0.2)
+	kmax_map = "2 %d %d %d %d"%(bw*1000000000, 400*bw/25, bw*4*1000000000, 400*bw*4/25)
+	kmin_map = "2 %d %d %d %d"%(bw*1000000000, 100*bw/25, bw*4*1000000000, 100*bw*4/25)
+	pmax_map = "2 %d %.2f %d %.2f"%(bw*1000000000, 0.2, bw*4*1000000000, 0.2)
 
-	cpu_times = [7812]#, 15625, 31250, 62500, 125000, 25000, 500000]
-	algs = ["timely" ]#,"dctcp","dcqcn","hp"]
+	packet_sizes = [102400000, 1024000000]#, 10240, 102400, 1024000, 10240000, 102400000]
+	seconds_by_packet_size = {
+		1024: 6,
+		10240: 6,
+		102400: 5,
+		1024000: 10,
+		10240000: 50,
+		102400000: 30,
+		1024000000: 30,
+	}
+	cpu_times = [7812, 15625]#, 31250, 62500, 125000, 25000, 500000]
+	algs = [
+		# "timely",
+		# "dctcp",
+		# "dcqcn",
+		"hpccPint"]
 
-	for cc in algs:
-		config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc, failure)
+	for cc_alg in algs:
+		config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc_alg, failure)
 		for cpu_time in cpu_times:
-			if (cc.startswith("dcqcn")):
-				ai = 5 * bw / 25
-				hai = 50 * bw /25
+			for packet_size in packet_sizes:
+				cc = cc_alg
+				if (cc.startswith("dcqcn")):
+					ai = 5 * bw / 25
+					hai = 50 * bw /25
 
-				if cc == "dcqcn":
-					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-				elif cc == "dcqcn_paper":
-					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=50, t_dec=50, t_inc=55, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-				elif cc == "dcqcn_vwin":
-					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-				elif cc == "dcqcn_paper_vwin":
-					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=50, t_dec=50, t_inc=55, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			elif cc == "hp":
-				ai = 10 * bw / 25;
-				if args.hpai > 0:
-					ai = args.hpai
-				hai = ai # useless
-				int_multi = bw / 25;
-				cc = "%s%d"%(cc, args.utgt)
-				if (mi > 0):
-					cc += "mi%d"%mi
-				if args.hpai > 0:
-					cc += "ai%d"%ai
-				config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc, failure)
-				config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=3, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=1, u_tgt=u_tgt, mi=mi, int_multi=int_multi, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			elif cc == "dctcp":
-				ai = 10 # ai is useless for dctcp
-				hai = ai  # also useless
-				dctcp_ai=615 # calculated from RTT=13us and MTU=1KB, because DCTCP add 1 MTU per RTT.
-				kmax_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
-				kmin_map = "3 1000000000 2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
-				pmax_map = "3 1000000000 2 %d %.2f %d %.2f"%(bw*1000000000, 1.0, bw*4*1000000000, 1.0)
-				config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=8, t_alpha=1, t_dec=4, t_inc=300, g=0.0625, ai=ai, hai=hai, dctcp_ai=dctcp_ai, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			elif cc == "timely":
-				ai = 10 * bw / 10;
-				hai = 50 * bw / 10;
-				config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=7, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			elif cc == "timely_vwin":
-				ai = 10 * bw / 10;
-				hai = 50 * bw / 10;
-				config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=7, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			elif cc == "hpccPint":
-				ai = 10 * bw / 25;
-				if args.hpai > 0:
-					ai = args.hpai
-				hai = ai # useless
-				int_multi = bw / 25;
-				cc = "%s%d"%(cc, args.utgt)
-				if (mi > 0):
-					cc += "mi%d"%mi
-				if args.hpai > 0:
-					cc += "ai%d"%ai
-				cc += "log%.3f"%pint_log_base
-				cc += "p%.3f"%pint_prob
-				config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc, failure)
-				config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=10, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=1, u_tgt=u_tgt, mi=mi, int_multi=int_multi, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time)
-			else:
-				print "unknown cc:", cc
-				sys.exit(1)
+					if cc == "dcqcn":
+						config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+					elif cc == "dcqcn_paper":
+						config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=50, t_dec=50, t_inc=55, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+					elif cc == "dcqcn_vwin":
+						config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+					elif cc == "dcqcn_paper_vwin":
+						config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=1, t_alpha=50, t_dec=50, t_inc=55, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				elif cc == "hp":
+					ai = 10 * bw / 25;
+					if args.hpai > 0:
+						ai = args.hpai
+					hai = ai # useless
+					int_multi = bw / 25;
+					cc = "%s%d"%(cc, args.utgt)
+					if (mi > 0):
+						cc += "mi%d"%mi
+					if args.hpai > 0:
+						cc += "ai%d"%ai
+					config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc, failure)
+					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=3, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=1, u_tgt=u_tgt, mi=mi, int_multi=int_multi, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				elif cc == "dctcp":
+					ai = 10 # ai is useless for dctcp
+					hai = ai  # also useless
+					dctcp_ai=615 # calculated from RTT=13us and MTU=1KB, because DCTCP add 1 MTU per RTT.
+					kmax_map = "2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
+					kmin_map = "2 %d %d %d %d"%(bw*1000000000, 30*bw/10, bw*4*1000000000, 30*bw*4/10)
+					pmax_map = "2 %d %.2f %d %.2f"%(bw*1000000000, 1.0, bw*4*1000000000, 1.0)
+					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=8, t_alpha=1, t_dec=4, t_inc=300, g=0.0625, ai=ai, hai=hai, dctcp_ai=dctcp_ai, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				elif cc == "timely":
+					ai = 10 * bw / 10;
+					hai = 50 * bw / 10;
+					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=7, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=0, vwin=0, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				elif cc == "timely_vwin":
+					ai = 10 * bw / 10;
+					hai = 50 * bw / 10;
+					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=7, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=0, u_tgt=u_tgt, mi=mi, int_multi=1, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=1, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				elif cc == "hpccPint":
+					ai = 10 * bw / 25;
+					if args.hpai > 0:
+						ai = args.hpai
+					hai = ai # useless
+					int_multi = bw / 25;
+					cc = "%s%d"%(cc, args.utgt)
+					if (mi > 0):
+						cc += "mi%d"%mi
+					if args.hpai > 0:
+						cc += "ai%d"%ai
+					cc += "log%.3f"%pint_log_base
+					cc += "p%.3f"%pint_prob
+					config_name = "mix/config_%s_%s_%s%s.txt"%(topo, trace, cc, failure)
+					config = config_template.format(bw=bw, trace=trace, topo=topo, cc=cc, mode=10, t_alpha=1, t_dec=4, t_inc=300, g=0.00390625, ai=ai, hai=hai, dctcp_ai=1000, has_win=1, vwin=1, us=1, u_tgt=u_tgt, mi=mi, int_multi=int_multi, pint_log_base=pint_log_base, pint_prob=pint_prob, ack_prio=0, link_down=args.down, failure=failure, kmax_map=kmax_map, kmin_map=kmin_map, pmax_map=pmax_map, buffer_size=bfsz, enable_tr=enable_tr, cpu_time=cpu_time, packet_size=packet_size, seconds=seconds_by_packet_size[packet_size] * (cpu_time / 7812))
+				else:
+					print "unknown cc:", cc
+					sys.exit(1)
 
-			with open(config_name, "w") as file:
-				file.write(config)
+				with open(config_name, "w") as file:
+					file.write(config)
 
-			script = 'scratch/playground' if args.use_playground==1 else 'scratch/third'
-			cmd = "python2 waf --run \"%s %s\"" % (script, config_name)
-			os.system(cmd)
+				script = 'scratch/playground' if args.use_playground==1 else 'scratch/third'
+				cmd = "python2 waf --run \"%s %s\"" % (script, config_name)
+				os.system(cmd)

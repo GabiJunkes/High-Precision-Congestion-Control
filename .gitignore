@@ -9,3 +9,4 @@ simulation/.lock-waf_linux2_build
 fct_*.txt
 pfc_*.txt
 qlen_*.txt
+/simulation/log_output

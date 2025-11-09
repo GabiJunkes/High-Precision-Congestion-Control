@@ -31,7 +31,8 @@ private:
   void Process();
   void Consume();
   void Finish();
-  void Unpause();
+  void Send();
+
 
   // Atributos RDMA e IP/Portas
   Ptr<Node> m_node;
@@ -57,12 +58,11 @@ private:
   uint32_t start_time;
   std::ofstream* m_file;
 
-  uint32_t count;
-
-  bool is_paused;            // usado depois de terminar um passo (step) dando tempo do server receber todos os pacotes
+  uint32_t sent_count;
 
   bool is_sending;         // se está aguardando envio ser finalizado
   bool is_locked;          // simula pc_mutex
+  bool is_finished;
 
   static const uint32_t STEPS_PER_DATA_SIZE = 100;
 };

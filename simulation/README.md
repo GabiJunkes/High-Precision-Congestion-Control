@@ -75,5 +75,16 @@ The TIMELY implementation is based on our own understanding of the TIMELY paper.
 The DCTCP implementation is a version that we envision DCTCP will be implemented in hardware. It starts at line rate (not slow start) which we believe is necessary in future high-speed network. It also does not delay ACK, because delayed ACk is for saving software overhead. These settings are consistent with other schemes.
 
 `
-python2 run_all_cpus.py --trace flow_test --bw 10 --topo topology_test --use_playground=1;
+python2 run_all_cpus.py --trace flow --bw 100 --topo fat --use_playground=1
+`
+
+
+`
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_server_timely.csv results server_timely;\
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_client_timely.csv results client_timely;\
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_server_dctcp.csv results server_dctcp;\
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_client_dctcp.csv results client_dctcp;\
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_server_dcqcn.csv results server_dcqcn;\
+python3 plot.py /home/gabi/Documents/repos/High-Precision-Congestion-Control/simulation/log_output_formated/saida_client_dcqcn.csv results client_dcqcn
+
 `
