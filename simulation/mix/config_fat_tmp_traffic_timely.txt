@@ -10,7 +10,7 @@ TRACE_OUTPUT_FILE mix/mix_fat_tmp_traffic_timely.tr
 FCT_OUTPUT_FILE mix/fct_fat_tmp_traffic_timely.txt
 PFC_OUTPUT_FILE mix/pfc_fat_tmp_traffic_timely.txt
 
-SIMULATOR_STOP_TIME 60
+SIMULATOR_STOP_TIME 30
 
 CC_MODE 7
 ALPHA_RESUME_INTERVAL 1
@@ -57,6 +57,6 @@ QLEN_MON_FILE mix/qlen_fat_tmp_traffic_timely.txt
 QLEN_MON_START 2000000000
 QLEN_MON_END 3000000000
 
-CPU_TIME 15625;
+CPU_TIME 7812;
 PACKET_SIZE 1024000000;
 

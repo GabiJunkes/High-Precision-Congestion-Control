@@ -1,0 +1,110 @@
+=== Resultados para TIMELY ===
+
+[intra]
+  Pacote: 102.4 MB
+    FCT_COM_TRAFEGO:
+      media   : 8605.6000
+      mediana : 8606.0000
+      desvio  : 0.4911
+      minimo  : 8605.0000
+      maximo  : 8606.0000
+    FCT_SEM_TRAFEGO:
+      media   : 8605.6000
+      mediana : 8606.0000
+      desvio  : 0.4911
+      minimo  : 8605.0000
+      maximo  : 8606.0000
+    VAZAO_COM_TRAFEGO:
+      media   : 11899.2600
+      mediana : 11898.7000
+      desvio  : 0.6876
+      minimo  : 11898.7000
+      maximo  : 11900.1000
+    VAZAO_SEM_TRAFEGO:
+      media   : 11899.2600
+      mediana : 11898.7000
+      desvio  : 0.6876
+      minimo  : 11898.7000
+      maximo  : 11900.1000
+
+  Pacote: 1024.0 MB
+    FCT_COM_TRAFEGO:
+      media   : 86020.0000
+      mediana : 86020.0000
+      desvio  : 0.0000
+      minimo  : 86020.0000
+      maximo  : 86020.0000
+    FCT_SEM_TRAFEGO:
+      media   : 86020.0000
+      mediana : 86020.0000
+      desvio  : 0.0000
+      minimo  : 86020.0000
+      maximo  : 86020.0000
+    VAZAO_COM_TRAFEGO:
+      media   : 11904.2000
+      mediana : 11904.2000
+      desvio  : 0.0000
+      minimo  : 11904.2000
+      maximo  : 11904.2000
+    VAZAO_SEM_TRAFEGO:
+      media   : 11904.2000
+      mediana : 11904.2000
+      desvio  : 0.0000
+      minimo  : 11904.2000
+      maximo  : 11904.2000
+
+
+[inter]
+  Pacote: 102.4 MB
+    FCT_COM_TRAFEGO:
+      media   : 8758.8000
+      mediana : 8759.0000
+      desvio  : 153.5848
+      minimo  : 8605.0000
+      maximo  : 8912.0000
+    FCT_SEM_TRAFEGO:
+      media   : 8605.6000
+      mediana : 8606.0000
+      desvio  : 0.4911
+      minimo  : 8605.0000
+      maximo  : 8606.0000
+    VAZAO_COM_TRAFEGO:
+      media   : 11694.6800
+      mediana : 11694.4000
+      desvio  : 205.0940
+      minimo  : 11490.1000
+      maximo  : 11900.1000
+    VAZAO_SEM_TRAFEGO:
+      media   : 11899.2600
+      mediana : 11898.7000
+      desvio  : 0.6876
+      minimo  : 11898.7000
+      maximo  : 11900.1000
+
+  Pacote: 1024.0 MB
+    FCT_COM_TRAFEGO:
+      media   : 86020.0000
+      mediana : 86020.0000
+      desvio  : 0.0000
+      minimo  : 86020.0000
+      maximo  : 86020.0000
+    FCT_SEM_TRAFEGO:
+      media   : 86020.0000
+      mediana : 86020.0000
+      desvio  : 0.0000
+      minimo  : 86020.0000
+      maximo  : 86020.0000
+    VAZAO_COM_TRAFEGO:
+      media   : 11904.2000
+      mediana : 11904.2000
+      desvio  : 0.0000
+      minimo  : 11904.2000
+      maximo  : 11904.2000
+    VAZAO_SEM_TRAFEGO:
+      media   : 11904.2000
+      mediana : 11904.2000
+      desvio  : 0.0000
+      minimo  : 11904.2000
+      maximo  : 11904.2000
+
+

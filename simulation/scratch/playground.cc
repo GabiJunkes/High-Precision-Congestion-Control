@@ -944,7 +944,7 @@ int main(int argc, char *argv[])
 					rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(cpu_time));
 					
 					node->AddApplication(rdmaSimClient);
-					rdmaSimClient->SetStartTime(MicroSeconds(2100000));
+					rdmaSimClient->SetStartTime(MicroSeconds(2010000));
 
 					rdmaSimClient->SetFile(clientLogFile);
 			}else if (i == 17) { // 17 intra pod 64 inter pod
@@ -955,7 +955,7 @@ int main(int argc, char *argv[])
 					rdmaSimServer->SetRdma(clientRdma);					
 
 					node->AddApplication(rdmaSimServer);
-					rdmaSimServer->SetStartTime(MicroSeconds(2100000));
+					rdmaSimServer->SetStartTime(MicroSeconds(2010000));
 
 					rdmaSimServer->SetFile(serverLogFile);
 			} 

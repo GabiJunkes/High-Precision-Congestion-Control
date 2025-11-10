@@ -112,9 +112,9 @@ if __name__ == "__main__":
 	}
 	cpu_times = [7812, 15625]#, 31250, 62500, 125000, 25000, 500000]
 	algs = [
-		# "timely",
-		# "dctcp",
-		# "dcqcn",
+		"timely",
+		"dctcp",
+		"dcqcn",
 		"hpccPint"]
 
 	for cc_alg in algs:
