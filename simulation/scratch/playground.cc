@@ -19,6 +19,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unordered_map>
 #include <time.h> 
 #include "ns3/core-module.h"
@@ -40,9 +42,12 @@
 #include <ns3/rdma-sim-client.h>
 #include <ns3/rdma-sim-server.h>
 #include <ns3/rdma-sim-traffic.h>
+#include <ns3/rng-seed-manager.h>
+#include <ctime> 
 
 using namespace ns3;
 using namespace std;
+
 
 NS_LOG_COMPONENT_DEFINE("GENERIC_SIMULATION");
 
@@ -88,6 +93,9 @@ string qlen_mon_file;
 
 uint32_t cpu_time = 7812;
 uint32_t packet_size = 1024;
+
+string cenario;
+string traffic;
 
 unordered_map<uint64_t, uint32_t> rate2kmax, rate2kmin;
 unordered_map<uint64_t, double> rate2pmax;
@@ -344,6 +352,10 @@ int main(int argc, char *argv[])
 {
 	clock_t begint, endt;
 	begint = clock();
+
+	uint32_t systemTime = static_cast<uint32_t>(time(NULL));
+    ns3::RngSeedManager::SetSeed(systemTime);
+	srand(systemTime);
 #ifndef PGO_TRAINING
 	if (argc > 1)
 #else
@@ -663,6 +675,14 @@ int main(int argc, char *argv[])
 			}else if (key.compare("PACKET_SIZE") == 0){
 				conf >> packet_size;
 				std::cout << "PACKET_SIZE\t\t\t\t" << packet_size << '\n';
+			}else if (key.compare("CENARIO") == 0){
+				conf >> cenario;
+				std::cout << "CENARIO\t\t\t\t" << cenario << '\n';
+			}else if (key.compare("TRAFFIC") == 0){
+				std::string v;
+				conf >> v;
+				traffic = v;
+				std::cout << "TRAFFIC\t\t\t\t" << traffic << '\n';
 			}
 			fflush(stdout);
 		}
@@ -881,8 +901,22 @@ int main(int argc, char *argv[])
 		algorithm = "hp";
 	}
 
-  	std::ofstream clientLogFile("log_output/saida_client_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv");
-  	std::ofstream serverLogFile("log_output/saida_server_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv");
+	std::string baseDir = "log_output_" + cenario + "_" + traffic;
+  	
+	mkdir(baseDir.c_str(), 0755);
+
+	// old fat: 17 intra pod 64 inter pod
+	// k8 fat: 3 intra pod 127 inter pod
+	uint32_t serverPodIndex = 3;
+	if (cenario == "inter") {
+		serverPodIndex = 127;
+		std::cout << "Running inter scenario "<< serverPodIndex << "\n";
+	}else {
+		std::cout << "Running intra scenario "<< serverPodIndex << "\n";
+	}
+
+	std::ofstream clientLogFile(baseDir +  "/saida_client_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv", std::ios::app);
+  	std::ofstream serverLogFile(baseDir +  "/saida_server_" + algorithm + "_" + std::to_string(packet_size)  + "_" + std::to_string(cpu_time) + ".csv", std::ios::app);
 
 	for (uint32_t i = 0; i < node_num; i++){
 		std::cout << "i "<< i << ", id: "<< n.Get(i) << ", type: "<< n.Get(i)->GetNodeType() <<"\n";
@@ -944,18 +978,19 @@ int main(int argc, char *argv[])
 					rdmaSimClient->SetAttribute("ProcessTime", UintegerValue(cpu_time));
 					
 					node->AddApplication(rdmaSimClient);
-					rdmaSimClient->SetStartTime(MicroSeconds(2010000));
+					rdmaSimClient->SetStartTime(Seconds(2.0));
 
 					rdmaSimClient->SetFile(clientLogFile);
-			}else if (i == 17) { // 17 intra pod 64 inter pod
+			}else if (i == serverPodIndex) {
 					Ptr<RdmaSimServer> rdmaSimServer = CreateObject<RdmaSimServer>();
 
-					rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(cpu_time));\
+					rdmaSimServer->SetAttribute("ProcessTime", UintegerValue(cpu_time));
+					rdmaSimServer->SetAttribute("ReceiveSize", UintegerValue(packet_size));
 					rdmaSimServer->SetNode(node);
 					rdmaSimServer->SetRdma(clientRdma);					
 
 					node->AddApplication(rdmaSimServer);
-					rdmaSimServer->SetStartTime(MicroSeconds(2010000));
+					rdmaSimServer->SetStartTime(Seconds(2.0));
 
 					rdmaSimServer->SetFile(serverLogFile);
 			} 
@@ -1100,15 +1135,17 @@ int main(int argc, char *argv[])
 	}
 
 	// schedule buffer monitor
-	FILE* qlen_output = fopen(qlen_mon_file.c_str(), "w");
-	Simulator::Schedule(NanoSeconds(qlen_mon_start), &monitor_buffer, qlen_output, &n);
+	// optimize sim by not monitoring buffer
+	// FILE* qlen_output = fopen(qlen_mon_file.c_str(), "w");
+	// Simulator::Schedule(NanoSeconds(qlen_mon_start), &monitor_buffer, qlen_output, &n);
 
 	//
 	// Now, do the actual simulation.
 	//
 	std::cout << "Running Simulation.\n";
+	std::cout << "\n Seed: " << ns3::RngSeedManager::GetSeed() << "\n";
 	fflush(stdout);
-	NS_LOG_INFO("Run Simulation.");
+	NS_LOG_INFO("Run Simulation.");\
 	Simulator::Stop(Seconds(simulator_stop_time));
 	Simulator::Run();
 	Simulator::Destroy();

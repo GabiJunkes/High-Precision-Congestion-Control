@@ -8,12 +8,21 @@ from pathlib import Path
 BASE_DIR = "../simulation/outputs/formated"
 OUTPUT_DIR = "graficos"
 
-TIPOS = ["intra", "intra_no_traffic", "inter", "inter_no_traffic"]
+TIPOS = ["intra_30_traffic", "intra_no_traffic", "inter_30_traffic", "inter_no_traffic"]
 
 # opcional: aplicar escala logarítmica em alguns algoritmos
 LOG_SCALE_ALGS = []  # exemplo: ["hpcc", "timely"]
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+def formatar_para_sci(valor):
+        """Converte um float para o formato LaTeX 'NUM\sci{eEXP}'"""
+        # Formata o número, ex: "9.38e+10"
+        string_cientifica = f"{valor:.2e}"
+        # Separa o número do expoente, ex: ["9.38", "+10"]
+        partes = string_cientifica.split('e')
+        # Remonta no formato desejado: "9.38\sci{e+10}"
+        return f"{partes[0]}\\sci{{e{partes[1]}}}"
 
 def resumo_estatistico(df: pd.Series):
     """Retorna estatísticas relevantes de uma série numérica"""
@@ -37,7 +46,7 @@ def ler_csv_caminho(path):
                     cpu = float(partes[1])
                     pacote = int(partes[2])
                     fct = float(partes[3])
-                    vazao = float(partes[4])
+                    vazao = float(partes[4]) * 8000000
                     dados.append({"cpu": cpu, "pacote": pacote, "fct": fct, "vazao": vazao})
     return pd.DataFrame(dados)
 
@@ -70,12 +79,13 @@ for alg in sorted(algoritmos):
     # dicionário para salvar estatísticas agregadas
     resultados_alg = {}
 
-    for base_tipo in ["intra", "inter"]:
-        no_traffic = base_tipo + "_no_traffic"
+    for base in ["intra", "inter"]:
+        no_traffic = base + "_no_traffic"
+        base_tipo = base + "_30_traffic"
         if base_tipo not in dados or no_traffic not in dados:
             continue
 
-        tipo_dir = os.path.join(alg_dir, base_tipo)
+        tipo_dir = os.path.join(alg_dir, base)
         os.makedirs(tipo_dir, exist_ok=True)
 
         pacotes = sorted(set(dados[base_tipo]["pacote"]).union(dados[no_traffic]["pacote"]))
@@ -126,8 +136,8 @@ for alg in sorted(algoritmos):
             ax.set_title(f"Vazão - Pacote {pacote/1e6:.1f} MB")
             ax.set_ylabel("Vazão (MB/s)")
             ax.grid(True, axis="y", linestyle="--", alpha=0.7)
-            ax.yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-            ax.ticklabel_format(style="plain", axis="y")
+            
+            ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
 
             if alg in LOG_SCALE_ALGS:
                 ax.set_yscale("log")
@@ -145,18 +155,92 @@ for alg in sorted(algoritmos):
 
     # --- Salva resumo em TXT ---
     resumo_path = os.path.join(alg_dir, f"resultados_{alg}.txt")
+    # with open(resumo_path, "w") as f:
+    #     f.write(f"=== Resultados para {alg.upper()} ===\n\n")
+    #     for tipo_exec, pacotes_data in resultados_alg.items():
+    #         f.write(f"[{tipo_exec}]\n")
+    #         for pacote, metricas in pacotes_data.items():
+    #             f.write(f"  Pacote: {pacote/1e6:.1f} MB\n")
+    #             for nome, stats in metricas.items():
+    #                 f.write(f"    {nome.upper()}:\n")
+    #                 for k, v in stats.items():
+    #                     f.write(f"      {k:8}: {v:.4f}\n")
+    #             f.write("\n")
+    #         f.write("\n")
+
+    
     with open(resumo_path, "w") as f:
-        f.write(f"=== Resultados para {alg.upper()} ===\n\n")
+        f.write(f"% Resultados em LaTeX para {alg.upper()}\n")
+        f.write(f"% Lembre-se de adicionar os pacotes no seu documento principal:\n")
+        f.write(f"% \\usepackage{{booktabs}} (para top/mid/bottomrule)\n")
+        f.write(f"% \\usepackage{{float}} (para a opção [H])\n")
+        f.write(f"% \\usepackage{{glossaries}} (para \\gls)\n\n")
+
+        # Itera sobre cada tipo de execução (ex: "intra_30_traffic")
         for tipo_exec, pacotes_data in resultados_alg.items():
-            f.write(f"[{tipo_exec}]\n")
-            for pacote, metricas in pacotes_data.items():
-                f.write(f"  Pacote: {pacote/1e6:.1f} MB\n")
-                for nome, stats in metricas.items():
-                    f.write(f"    {nome.upper()}:\n")
-                    for k, v in stats.items():
-                        f.write(f"      {k:8}: {v:.4f}\n")
-                f.write("\n")
-            f.write("\n")
+            
+            # Determina o nome base (intra ou inter) para o caption
+            base_nome = "intra" if "intra" in tipo_exec else "inter"
+            
+            alg = "hpcc" if "hp" == alg else alg
+
+            f.write(f"\\begin{{table}}[H]\n")
+            f.write(f"\\centering\n")
+            f.write(f"\\caption{{Resultados {base_nome} \\textit{{pod}} para o protocolo \\gls{{{alg}}}}}\n")
+            f.write(f"\\label{{tab:{alg}_{base_nome}}}\n")
+            
+            # Alterado para 'lrrrrr' (6 colunas)
+            f.write(f"\\begin{{tabular}}{{lrrrrr}}\n") 
+            f.write(f"\\toprule\n")
+            
+            # Cabeçalho atualizado (sem coluna Pacote)
+            f.write(f"\\textbf{{Métrica}} & \\textbf{{Média}} & \\textbf{{Mediana}} & \\textbf{{Desvio}} & \\textbf{{Mínimo}} & \\textbf{{Máximo}} \\\\\n")
+            f.write(f"\\midrule\n")
+
+            # Itera sobre os pacotes (ordenados por tamanho)
+            for i, pacote in enumerate(sorted(pacotes_data.keys())):
+                
+                # Adiciona \midrule de separação se não for o primeiro pacote
+                if i > 0:
+                    f.write(f"\\midrule\n")
+
+                metricas = pacotes_data[pacote]
+                pacote_mb = f"{pacote/1e6:.1f}"
+
+                # --- Adiciona o Subtítulo do Pacote ---
+                f.write(f"\\multicolumn{{6}}{{l}}{{\\textbf{{Pacote {pacote_mb} MB}}}} \\\\\n")
+                f.write(f"\\cmidrule(r){{1-6}}\n")
+
+                # --- Linhas de FCT (sem a coluna {pacote_mb}) ---
+                stats_fct_com = metricas["fct_com_trafego"]
+                f.write(f"\\gls{{fct}} c/ tráfego & "
+                        f"{stats_fct_com['media']:.2f}$\\mu$s & {stats_fct_com['mediana']:.2f}$\\mu$s & "
+                        f"{stats_fct_com['desvio']:.2f}$\\mu$s & {stats_fct_com['minimo']:.2f}$\\mu$s & "
+                        f"{stats_fct_com['maximo']:.2f}$\\mu$s \\\\\n")
+
+                stats_fct_sem = metricas["fct_sem_trafego"]
+                f.write(f"\\gls{{fct}} s/ tráfego & "
+                        f"{stats_fct_sem['media']:.2f}$\\mu$s & {stats_fct_sem['mediana']:.2f}$\\mu$s & "
+                        f"{stats_fct_sem['desvio']:.2f}$\\mu$s & {stats_fct_sem['minimo']:.2f}$\\mu$s & "
+                        f"{stats_fct_sem['maximo']:.2f}$\\mu$s \\\\\n")
+
+                # --- Linhas de Vazão (sem a coluna {pacote_mb}) ---
+                stats_vazao_com = metricas["vazao_com_trafego"]
+                f.write(f"Vazão c/ tráfego & "
+                        f"{formatar_para_sci(stats_vazao_com['media'])} & {formatar_para_sci(stats_vazao_com['mediana'])} & "
+                        f"{formatar_para_sci(stats_vazao_com['desvio'])} & {formatar_para_sci(stats_vazao_com['minimo'])} & "
+                        f"{formatar_para_sci(stats_vazao_com['maximo'])} \\\\\n")
+
+                stats_vazao_sem = metricas["vazao_sem_trafego"]
+                f.write(f"Vazão s/ tráfego & "
+                        f"{formatar_para_sci(stats_vazao_sem['media'])} & {formatar_para_sci(stats_vazao_sem['mediana'])} & "
+                        f"{formatar_para_sci(stats_vazao_sem['desvio'])} & {formatar_para_sci(stats_vazao_sem['minimo'])} & "
+                        f"{formatar_para_sci(stats_vazao_sem['maximo'])} \\\\\n")
+
+            # --- Fim da Tabela ---
+            f.write(f"\\bottomrule\n")
+            f.write(f"\\end{{tabular}}\n")
+            f.write(f"\\end{{table}}\n\n")
 
     print(f"  → Resultados salvos em {resumo_path}")
 

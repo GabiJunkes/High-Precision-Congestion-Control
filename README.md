@@ -36,3 +36,12 @@ python2 ./waf build
 
 Now you can follow README section inside `/simulation` at **Run** section.
 - Note: everytime you need to run waf, run it with python2, like the command above.
+
+For generating traffic, you can use the commands
+```
+docker run --rm -v "$(pwd)/simulation:/hpcc" -w /hpcc hpcc /bin/bash -c 'cd traffic_gen; python2 ./traffic_gen.py -c FbHdp_distribution.txt -n 320 -l 0.3 -b 100G -t 20 -o 30_traffic.txt' 
+
+docker run --rm -v "$(pwd)/simulation:/hpcc" -w /hpcc hpcc /bin/bash -c 'cd traffic_gen; python2 ./traffic_gen.py -c FbHdp_distribution.txt -n 320 -l 0.5 -b 100G -t 20 -o 50_traffic.txt' 
+```
+
+Read more at `/simulation/traffic_gen/README.md`

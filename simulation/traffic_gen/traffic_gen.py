@@ -1,3 +1,4 @@
+import os
 import sys
 import random
 import math
@@ -39,63 +40,68 @@ if __name__ == "__main__":
 	options,args = parser.parse_args()
 
 	base_t = 2000000000
+	for iteration in range(10):
+		if not options.nhost:
+			print "please use -n to enter number of hosts"
+			sys.exit(0)
+		nhost = int(options.nhost)
+		load = float(options.load)
+		bandwidth = translate_bandwidth(options.bandwidth)
+		time = float(options.time)*1e9 # translates to ns
+		
+		filename, extension = os.path.splitext(options.output)
+        
+        # Reconstruct as 'tmp_traffic_0.txt'
+		output = "%s_%d%s"%(filename, iteration, extension)
 
-	if not options.nhost:
-		print "please use -n to enter number of hosts"
-		sys.exit(0)
-	nhost = int(options.nhost)
-	load = float(options.load)
-	bandwidth = translate_bandwidth(options.bandwidth)
-	time = float(options.time)*1e9 # translates to ns
-	output = options.output
-	if bandwidth == None:
-		print "bandwidth format incorrect"
-		sys.exit(0)
+		if bandwidth == None:
+			print "bandwidth format incorrect"
+			sys.exit(0)
 
-	fileName = options.cdf_file
-	file = open(fileName,"r")
-	lines = file.readlines()
-	# read the cdf, save in cdf as [[x_i, cdf_i] ...]
-	cdf = []
-	for line in lines:
-		x,y = map(float, line.strip().split(' '))
-		cdf.append([x,y])
+		fileName = options.cdf_file
+		file = open(fileName,"r")
+		lines = file.readlines()
+		# read the cdf, save in cdf as [[x_i, cdf_i] ...]
+		cdf = []
+		for line in lines:
+			x,y = map(float, line.strip().split(' '))
+			cdf.append([x,y])
 
-	# create a custom random generator, which takes a cdf, and generate number according to the cdf
-	customRand = CustomRand()
-	if not customRand.setCdf(cdf):
-		print "Error: Not valid cdf"
-		sys.exit(0)
+		# create a custom random generator, which takes a cdf, and generate number according to the cdf
+		customRand = CustomRand()
+		if not customRand.setCdf(cdf):
+			print "Error: Not valid cdf"
+			sys.exit(0)
 
-	ofile = open(output, "w")
+		ofile = open(output, "w")
 
-	# generate flows
-	avg = customRand.getAvg()
-	avg_inter_arrival = 1/(bandwidth*load/8./avg)*1000000000
-	n_flow_estimate = int(time / avg_inter_arrival * nhost)
-	n_flow = 0
-	ofile.write("%d \n"%n_flow_estimate)
-	host_list = [(base_t + int(poisson(avg_inter_arrival)), i) for i in range(nhost)]
-	heapq.heapify(host_list)
-	while len(host_list) > 0:
-		t,src = host_list[0]
-		inter_t = int(poisson(avg_inter_arrival))
-		new_tuple = (src, t + inter_t)
-		dst = random.randint(0, nhost-1)
-		while (dst == src):
+		# generate flows
+		avg = customRand.getAvg()
+		avg_inter_arrival = 1/(bandwidth*load/8./avg)*1000000000
+		n_flow_estimate = int(time / avg_inter_arrival * nhost)
+		n_flow = 0
+		ofile.write("%d \n"%n_flow_estimate)
+		host_list = [(base_t, i) for i in range(nhost)]
+		heapq.heapify(host_list)
+		while len(host_list) > 0:
+			t,src = host_list[0]
+			inter_t = int(poisson(avg_inter_arrival))
+			new_tuple = (src, t + inter_t)
 			dst = random.randint(0, nhost-1)
-		if (t + inter_t > time + base_t):
-			heapq.heappop(host_list)
-		else:
-			size = int(customRand.rand())
-			if size <= 0:
-				size = 1
-			n_flow += 1;
-			ofile.write("%d %d 3 100 %d %.9f\n"%(src, dst, size, t * 1e-9))
-			heapq.heapreplace(host_list, (t + inter_t, src))
-	ofile.seek(0)
-	ofile.write("%d"%n_flow)
-	ofile.close()
+			while (dst == src):
+				dst = random.randint(0, nhost-1)
+			if (t + inter_t > time + base_t):
+				heapq.heappop(host_list)
+			else:
+				size = int(customRand.rand())
+				if size <= 0:
+					size = 1
+				n_flow += 1;
+				ofile.write("%d %d 3 100 %d %.9f\n"%(src, dst, size, t * 1e-9))
+				heapq.heapreplace(host_list, (t + inter_t, src))
+		ofile.seek(0)
+		ofile.write("%d"%n_flow)
+		ofile.close()
 
 '''
 	f_list = []

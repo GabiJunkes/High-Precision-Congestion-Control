@@ -45,7 +45,7 @@ private:
   bool is_processing;           // está processando ou não
   bool is_locked;               // simmula pc->mutex
 
-  static const uint32_t STEPS_PER_DATA_SIZE = 100;
+  static const uint32_t STEPS_PER_DATA_SIZE = 1;
 };
 
 } // namespace ns3

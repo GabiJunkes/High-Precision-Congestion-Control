@@ -14,6 +14,10 @@ TypeId RdmaSimServer::GetTypeId(void) {
       TypeId("ns3::RdmaSimServer")
           .SetParent<Application>()
           .AddConstructor<RdmaSimServer>()
+          .AddAttribute("ReceiveSize", "The number of bytes to receive",
+                        UintegerValue(10000),
+                        MakeUintegerAccessor(&RdmaSimServer::m_size),
+                        MakeUintegerChecker<uint64_t>())
           .AddAttribute("ProcessTime", "Time to process data (ns)",
                         UintegerValue(100),
                         MakeUintegerAccessor(&RdmaSimServer::process_time),
@@ -44,12 +48,14 @@ void RdmaSimServer::StartApplication(void) {
 
   NS_LOG_FUNCTION_NOARGS();
   Simulator::Schedule(NanoSeconds(0), MakeEvent(&RdmaSimServer::Process, this));
+  Simulator::Schedule(NanoSeconds(0), MakeEvent(&RdmaSimServer::Consume, this));
   m_rdma->TraceConnectWithoutContext("QpComplete", MakeCallback(&RdmaSimServer::Receive, this));
 }
 
 void RdmaSimServer::StopApplication(void) { NS_LOG_FUNCTION_NOARGS(); }
 
 void RdmaSimServer::Receive(Ptr<RdmaQueuePair> qp) {
+    if (qp->m_size != m_size) { return; }
     uint64_t now = Simulator::Now().GetMicroSeconds();
 
     long fct = now - qp->startTime.GetMicroSeconds();
@@ -98,8 +104,20 @@ void RdmaSimServer::Process() {
 
   }
 
+  if (is_locked && buffer_in != buffer_out) {
+    is_locked = false;
+  }
+
   Simulator::Schedule(NanoSeconds(process_time),
                       MakeEvent(&RdmaSimServer::Process, this));
+}
+
+
+void RdmaSimServer::Consume() {
+  // unlock
+  is_locked = false;
+
+  Simulator::Schedule(NanoSeconds(100), MakeEvent(&RdmaSimServer::Consume, this));
 }
 
 void RdmaSimServer::DoDispose(void) {

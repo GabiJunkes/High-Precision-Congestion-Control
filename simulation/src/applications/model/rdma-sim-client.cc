@@ -136,12 +136,17 @@ void RdmaSimClient::Process() {
                 << std::endl;
 
       is_finished = true;
+      Simulator::Schedule(NanoSeconds(process_time), MakeEvent(&RdmaSimClient::StopAfterCompletion, this));
     }
   }
 
   if (!is_finished) {
     Simulator::Schedule(NanoSeconds(process_time), MakeEvent(&RdmaSimClient::Process, this));
   }
+}
+
+void RdmaSimClient::StopAfterCompletion() {
+  Simulator::Stop();
 }
 
 void RdmaSimClient::Consume() {
@@ -158,6 +163,9 @@ void RdmaSimClient::Consume() {
                         MakeCallback(&RdmaSimClient::Finish, this));
     sent_count++;
   }
+
+  // unlock
+  is_locked = false;
 
   Simulator::Schedule(NanoSeconds(100),
                       MakeEvent(&RdmaSimClient::Consume, this));

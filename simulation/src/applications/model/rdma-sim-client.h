@@ -32,7 +32,7 @@ private:
   void Consume();
   void Finish();
   void Send();
-
+  void StopAfterCompletion();
 
   // Atributos RDMA e IP/Portas
   Ptr<Node> m_node;
@@ -64,7 +64,7 @@ private:
   bool is_locked;          // simula pc_mutex
   bool is_finished;
 
-  static const uint32_t STEPS_PER_DATA_SIZE = 100;
+  static const uint32_t STEPS_PER_DATA_SIZE = 1;
 };
 
 } // namespace ns3
