@@ -57,7 +57,7 @@ for folder_name in os.listdir(BASE_DIR):
                                     'Algoritmo': alg.upper() if alg != 'hp' else 'HPCC',
                                     'Tamanho do Pacote': packet_size,
                                     'FCT (us)': fct,
-                                    'Vazão': throughput
+                                    'Vazão (MB/s)': throughput
                                 })
 
 # 2. Criação do DataFrame
@@ -104,14 +104,14 @@ for traffic in df['Tráfego (%)'].unique():
         ax1 = sns.boxplot(
             data=subset, 
             x='Algoritmo', 
-            y='Vazão',
+            y='Vazão (MB/s)',
             hue='Algoritmo',
             order=alg_order,
             palette=paleta_algoritmos,
             legend=False
         )
         plt.title(f'Vazão\nTráfego de Fundo: {traffic}% | Pacote: {tamanho_mb}', pad=15)
-        plt.ylabel('Vazão', fontsize=12)
+        plt.ylabel('Vazão (MB/s)', fontsize=12)
         plt.xlabel('Algoritmo', fontsize=12)
         
         # Salva a imagem com alta resolução (ideal para o documento do TCC)
@@ -140,4 +140,4 @@ for traffic in df['Tráfego (%)'].unique():
         plt.savefig(out_filename_fct, dpi=300, bbox_inches='tight')
         plt.close()
 
-print(f"Gráficos gerados com sucesso na pasta '{OUTPUT_DIR}'!")
+print(f"Gráficos gerados com sucesso!")
