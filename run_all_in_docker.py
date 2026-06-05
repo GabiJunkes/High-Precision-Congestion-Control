@@ -13,7 +13,7 @@ algs = [
     "dcqcn",
 ]
 
-traffic = '70_traffic'
+traffic = '90_traffic'
 cenario = 'inter'
 
 for cc_alg in algs:

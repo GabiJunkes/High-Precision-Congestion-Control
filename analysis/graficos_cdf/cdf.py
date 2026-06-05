@@ -16,7 +16,9 @@ plt.rcParams.update({
 
 def formatar_bytes_para_mb(bytes_val):
     """Converte bytes para MB para deixar o título mais bonito no TCC."""
-    return f"{bytes_val / 10**6:.1f} MB"
+    val = bytes_val / 10**6
+    val = int(round(val, 1 - len(str(int(val)))))
+    return f"{val} MB"
 
 def main():
     dados_p = []
@@ -41,7 +43,7 @@ def main():
         partes = nome_base.split('_')
         
         if len(partes) >= 5:
-            algoritmo = partes[2].upper()
+            algoritmo = partes[2].upper() if partes[2].upper() != 'HP' else 'HPCC'
             tamanho_pacote = int(partes[3])
             
             try:

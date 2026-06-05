@@ -14,3 +14,4 @@ qlen_*.txt
 /simulation/outputs
 *.png
 analysis/graficos_sintetic_traffic
+*.csv
